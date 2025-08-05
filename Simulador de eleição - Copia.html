@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisador de Viabilidade Política</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .step-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .step-number {
+            background-color: #1d4ed8; /* blue-800 */
+            color: white;
+            border-radius: 50%;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl lg:text-5xl font-bold text-gray-800">Analisador de Viabilidade Política</h1>
+            <p class="text-lg text-gray-600 mt-3">Descubra suas chances reais de eleição e o melhor caminho estratégico.</p>
+        </div>
+
+        <div class="space-y-8">
+            <!-- Passo 1: Configuração da Eleição -->
+            <div class="step-card p-6">
+                <div class="flex items-start space-x-4">
+                    <div class="step-number">1</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Cenário da Disputa</h2>
+                        <p class="text-gray-500">Selecione onde você pretende concorrer.</p>
+                    </div>
+                </div>
+                <div id="configuracao-eleicao" class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="uf" class="block text-sm font-medium text-gray-700 mb-1">Estado (UF)</label>
+                        <select id="uf" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                    </div>
+                    <div>
+                        <label for="tipoEleicao" class="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+                        <select id="tipoEleicao" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                    </div>
+                    <div id="cidade-group" class="hidden">
+                        <label for="cidade" class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                        <select id="cidade" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 2: Perfil do Candidato -->
+            <div class="step-card p-6">
+                <div class="flex items-start space-x-4">
+                    <div class="step-number">2</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Seu Perfil de Candidato</h2>
+                        <p class="text-gray-500">Insira suas estimativas pessoais para a campanha.</p>
+                    </div>
+                </div>
+                <div id="perfil-candidato" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="votos-candidato" class="block text-sm font-medium text-gray-700 mb-1">Sua estimativa de votos</label>
+                        <input type="number" id="votos-candidato" placeholder="Ex: 3500" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="custo-campanha" class="block text-sm font-medium text-gray-700 mb-1">Custo total estimado da campanha (R$)</label>
+                        <input type="number" id="custo-campanha" placeholder="Ex: 50000" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passo 3: Análise de Partidos -->
+            <div class="step-card p-6">
+                 <div class="flex items-start space-x-4">
+                    <div class="step-number">3</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Análise Estratégica de Partidos</h2>
+                        <p class="text-gray-500">Selecione os partidos que deseja analisar para uma possível filiação.</p>
+                    </div>
+                </div>
+                <div id="analise-partidos" class="mt-6">
+                    <label for="partidos-select" class="block text-sm font-medium text-gray-700 mb-1">Escolha os partidos para comparar</label>
+                    <select id="partidos-select" multiple class="w-full p-2 border border-gray-300 rounded-md shadow-sm"></select>
+                    <p class="text-xs text-gray-500 mt-1">Segure Ctrl (ou Cmd no Mac) para selecionar múltiplos partidos.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <button onclick="realizarAnalise()" class="bg-blue-700 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 text-lg">
+                Analisar Minha Viabilidade
+            </button>
+        </div>
+
+        <!-- Painel de Resultados -->
+        <div id="resultado-analise" class="mt-10 fade-in hidden"></div>
+
+    </div>
+
+    <script>
+        // --- DATA MOCKS ---
+        // Dados simulados para a análise. Em um app real, viria de um banco de dados.
+        const DADOS_ELEICOES = {
+            'SC': {
+                'df': {
+                    vagas: 16,
+                    votos_validos_2022: 4190847,
+                    partidos_2022: { 'PL': 1173468, 'PT': 547214, 'MDB': 428741, 'PSD': 415396, 'PP': 365859, 'União': 255301, 'PSDB': 183427, 'Republicanos': 177977, 'NOVO': 158866, 'PODE': 136222, 'PSOL': 122171, 'PDT': 94590 }
+                },
+                'de': {
+                    vagas: 40,
+                    votos_validos_2022: 4124024,
+                    partidos_2022: { 'PL': 1173468, 'MDB': 658741, 'PT': 547214, 'PSD': 415396, 'PP': 365859, 'União': 255301, 'PSDB': 183427, 'Republicanos': 177977, 'NOVO': 158866, 'PODE': 136222, 'PSOL': 122171, 'PDT': 94590 } // Dados ilustrativos
+                },
+                'vereador': {
+                    'Blumenau': {
+                        vagas: 15,
+                        votos_validos_2020: 165604,
+                        partidos_2020: { 'PODE': 25526, 'NOVO': 15875, 'PATRIOTA': 14608, 'PSL': 13038, 'PSD': 12698, 'PSDB': 11985, 'PT': 11211, 'PP': 10567, 'MDB': 9625, 'CIDADANIA': 8802, 'REPUBLICANOS': 8328, 'SOLIDARIEDADE': 6649, 'PL': 5985, 'PSC': 5698 }
+                    },
+                    'Florianópolis': {
+                        vagas: 23,
+                        votos_validos_2020: 261771,
+                        partidos_2020: { 'PSOL': 35000, 'MDB': 31000, 'PSD': 28000, 'PP': 25000, 'DEM': 22000, 'PSDB': 20000, 'PT': 18000, 'REPUBLICANOS': 15000, 'NOVO': 12000 }
+                    }
+                }
+            }
+        };
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            const ufSelect = document.getElementById('uf');
+            const tipoEleicaoSelect = document.getElementById('tipoEleicao');
+            const cidadeSelect = document.getElementById('cidade');
+
+            // Populate UFs
+            Object.keys(DADOS_ELEICOES).forEach(uf => {
+                ufSelect.add(new Option(uf, uf));
+            });
+
+            // Event Listeners
+            ufSelect.addEventListener('change', atualizarOpcoes);
+            tipoEleicaoSelect.addEventListener('change', atualizarOpcoes);
+            cidadeSelect.addEventListener('change', atualizarPartidos);
+
+            // Initial Load
+            atualizarOpcoes();
+        };
+
+        function atualizarOpcoes() {
+            const uf = document.getElementById('uf').value;
+            const tipoEleicaoSelect = document.getElementById('tipoEleicao');
+            const cidadeGroup = document.getElementById('cidade-group');
+            const cidadeSelect = document.getElementById('cidade');
+            
+            const cargosDisponiveis = Object.keys(DADOS_ELEICOES[uf]);
+            const cargoAtual = tipoEleicaoSelect.value;
+            tipoEleicaoSelect.innerHTML = '';
+            cargosDisponiveis.forEach(cargo => {
+                const nomeCargo = cargo === 'df' ? 'Deputado Federal' : (cargo === 'de' ? 'Deputado Estadual' : 'Vereador');
+                tipoEleicaoSelect.add(new Option(nomeCargo, cargo));
+            });
+
+            if (cargosDisponiveis.includes(cargoAtual)) {
+                tipoEleicaoSelect.value = cargoAtual;
+            }
+
+            const tipoEleicao = tipoEleicaoSelect.value;
+
+            if (tipoEleicao === 'vereador') {
+                cidadeGroup.classList.remove('hidden');
+                const cidadesDisponiveis = Object.keys(DADOS_ELEICOES[uf].vereador);
+                const cidadeAtual = cidadeSelect.value;
+                cidadeSelect.innerHTML = '';
+                cidadesDisponiveis.forEach(cidade => {
+                    cidadeSelect.add(new Option(cidade, cidade));
+                });
+                if (cidadesDisponiveis.includes(cidadeAtual)) {
+                    cidadeSelect.value = cidadeAtual;
+                }
+            } else {
+                cidadeGroup.classList.add('hidden');
+            }
+            
+            atualizarPartidos();
+        }
+
+        function atualizarPartidos() {
+            const uf = document.getElementById('uf').value;
+            const tipoEleicao = document.getElementById('tipoEleicao').value;
+            const cidade = document.getElementById('cidade').value;
+            const partidosSelect = document.getElementById('partidos-select');
+
+            let dadosEleicao;
+            if (tipoEleicao === 'vereador') {
+                dadosEleicao = DADOS_ELEICOES[uf]?.[tipoEleicao]?.[cidade];
+            } else {
+                dadosEleicao = DADOS_ELEICOES[uf]?.[tipoEleicao];
+            }
+
+            partidosSelect.innerHTML = '';
+            if (dadosEleicao) {
+                const partidos = Object.keys(dadosEleicao.partidos_2022 || dadosEleicao.partidos_2020);
+                partidos.sort().forEach(p => {
+                    partidosSelect.add(new Option(p, p));
+                });
+            }
+        }
+
+        function realizarAnalise() {
+            // 1. Coletar dados de entrada
+            const uf = document.getElementById('uf').value;
+            const tipoEleicao = document.getElementById('tipoEleicao').value;
+            const cidade = document.getElementById('cidade').value;
+            const votosCandidato = parseInt(document.getElementById('votos-candidato').value) || 0;
+            const custoCampanha = parseInt(document.getElementById('custo-campanha').value) || 0;
+            const partidosSelecionados = Array.from(document.getElementById('partidos-select').selectedOptions).map(opt => opt.value);
+            const resultadoDiv = document.getElementById('resultado-analise');
+
+            if (votosCandidato === 0 || partidosSelecionados.length === 0) {
+                resultadoDiv.innerHTML = `<div class="step-card p-6 text-center text-red-600 font-semibold">Por favor, insira sua estimativa de votos e selecione pelo menos um partido para analisar.</div>`;
+                resultadoDiv.classList.remove('hidden');
+                return;
+            }
+
+            // 2. Obter dados base da eleição
+            let dadosBase;
+            if (tipoEleicao === 'vereador') {
+                dadosBase = DADOS_ELEICOES[uf]?.[tipoEleicao]?.[cidade];
+            } else {
+                dadosBase = DADOS_ELEICOES[uf]?.[tipoEleicao];
+            }
+            
+            const numVagas = dadosBase.vagas;
+            const votosValidosBase = dadosBase.votos_validos_2022 || dadosBase.votos_validos_2020;
+            const partidosBase = dadosBase.partidos_2022 || dadosBase.partidos_2020;
+
+            // 3. Calcular métricas fundamentais
+            const quocienteEleitoral = Math.floor(votosValidosBase / numVagas);
+            const votosMinimosCandidato = Math.ceil(quocienteEleitoral * 0.10);
+
+            // 4. Analisar cada partido selecionado
+            const analises = partidosSelecionados.map(partidoNome => {
+                const votosPartidoBase = partidosBase[partidoNome] || 0;
+                const votosPartidoSimulado = votosPartidoBase + votosCandidato;
+
+                // Verifica se o partido atinge a cláusula de barreira (80% do QE)
+                const atingeClausulaPartido = votosPartidoSimulado >= quocienteEleitoral * 0.8;
+                
+                // Calcula vagas pelo Quociente Partidário (QP)
+                const vagasPorQP = Math.floor(votosPartidoSimulado / quocienteEleitoral);
+
+                // Verifica se o candidato atinge a votação nominal mínima (10% do QE)
+                const atingeVotacaoMinima = votosCandidato >= votosMinimosCandidato;
+
+                let chance = 'Baixa';
+                let observacao = '';
+                if (!atingeClausulaPartido) {
+                    observacao = 'Partido não atinge 80% do QE para disputar sobras.';
+                } else if (!atingeVotacaoMinima) {
+                    observacao = `Você precisa de mais ${votosMinimosCandidato - votosCandidato} votos para atingir o mínimo individual.`;
+                } else if (vagasPorQP < 1) {
+                    observacao = `Com seus votos, o partido ainda não atinge o QE para garantir uma vaga direta. Disputaria as sobras.`;
+                    chance = 'Média';
+                } else {
+                    observacao = `Com seus votos, o partido elege ${vagasPorQP} candidato(s) direto. Você está apto a assumir.`;
+                    chance = 'Alta';
+                }
+                
+                return {
+                    nome: partidoNome,
+                    votosSimulado: votosPartidoSimulado,
+                    vagasQP: vagasPorQP,
+                    chance: chance,
+                    observacao: observacao
+                };
+            });
+
+            // 5. Renderizar os resultados
+            renderizarResultados(analises, quocienteEleitoral, votosMinimosCandidato, votosCandidato, custoCampanha);
+        }
+
+        function renderizarResultados(analises, QE, votosMinimos, votosCandidato, custoCampanha) {
+            const resultadoDiv = document.getElementById('resultado-analise');
+            analises.sort((a,b) => {
+                const order = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+                return order[b.chance] - order[a.chance];
+            });
+            
+            const melhorOpcao = analises[0];
+            let corViabilidade = 'bg-red-500';
+            if (melhorOpcao.chance === 'Média') corViabilidade = 'bg-yellow-500';
+            if (melhorOpcao.chance === 'Alta') corViabilidade = 'bg-green-500';
+
+            const custoPorVoto = custoCampanha > 0 && votosCandidato > 0 ? (custoCampanha / votosCandidato).toFixed(2) : 0;
+
+            let html = `
+                <div class="step-card p-6">
+                    <h2 class="text-3xl font-bold text-gray-800 text-center mb-6">Resultado da Análise de Viabilidade</h2>
+                    
+                    <div class="text-center mb-8">
+                        <p class="text-lg text-gray-600">Sua principal chance de eleição é:</p>
+                        <div class="inline-block text-white font-bold text-2xl px-6 py-2 rounded-full mt-2 ${corViabilidade}">
+                            ${melhorOpcao.chance.toUpperCase()}
+                        </div>
+                        <p class="text-gray-600 mt-2">Pelo partido: <span class="font-bold text-blue-700">${melhorOpcao.nome}</span></p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8 bg-gray-100 p-4 rounded-lg">
+                        <div>
+                            <p class="text-sm text-gray-500">Quociente Eleitoral (QE)</p>
+                            <p class="text-2xl font-bold text-gray-800">${QE.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Votação Mínima Individual (10% QE)</p>
+                            <p class="text-2xl font-bold text-gray-800">${votosMinimos.toLocaleString('pt-BR')}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Seu Custo por Voto (R$)</p>
+                            <p class="text-2xl font-bold text-gray-800">${custoPorVoto}</p>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Comparativo Estratégico dos Partidos</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Partido</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Votos do Partido (com você)</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Chance</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Observação Estratégica</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+            `;
+
+            analises.forEach(p => {
+                let corChance = 'text-red-600';
+                if (p.chance === 'Média') corChance = 'text-yellow-600';
+                if (p.chance === 'Alta') corChance = 'text-green-600';
+
+                html += `
+                    <tr>
+                        <td class="px-4 py-3 font-semibold text-gray-900">${p.nome}</td>
+                        <td class="px-4 py-3 text-gray-700">${p.votosSimulado.toLocaleString('pt-BR')}</td>
+                        <td class="px-4 py-3 font-bold ${corChance}">${p.chance}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${p.observacao}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            resultadoDiv.innerHTML = html;
+            resultadoDiv.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
