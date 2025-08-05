@@ -110,6 +110,29 @@
                     <p class="text-xs text-gray-500 mt-1">Segure Ctrl (ou Cmd no Mac) para selecionar múltiplos partidos.</p>
                 </div>
             </div>
+            
+            <!-- Passo 4: Projeção de Cenário -->
+            <div class="step-card p-6">
+                 <div class="flex items-start space-x-4">
+                    <div class="step-number">4</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Modo de Projeção</h2>
+                        <p class="text-gray-500">Simule o cenário da próxima eleição ajustando as tendências.</p>
+                    </div>
+                </div>
+                <div class="mt-6 space-y-4">
+                    <div>
+                        <label for="proj-eleitorado" class="block text-sm font-medium text-gray-700 mb-1">Projeção de crescimento do eleitorado (%)</label>
+                        <input type="number" id="proj-eleitorado" value="5" class="w-full md:w-1/2 p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <h3 class="text-md font-medium text-gray-700 mb-2">Tendência de votos para os partidos selecionados</h3>
+                        <div id="partido-tendencias-container" class="space-y-2">
+                             <p class="text-sm text-gray-500">Selecione os partidos no Passo 3 para definir as tendências.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="mt-8 text-center">
@@ -125,27 +148,30 @@
 
     <script>
         // --- DATA MOCKS ---
-        // Dados simulados para a análise. Em um app real, viria de um banco de dados.
         const DADOS_ELEICOES = {
             'SC': {
                 'df': {
                     vagas: 16,
+                    eleitorado_2022: 5495133,
                     votos_validos_2022: 4190847,
                     partidos_2022: { 'PL': 1173468, 'PT': 547214, 'MDB': 428741, 'PSD': 415396, 'PP': 365859, 'União': 255301, 'PSDB': 183427, 'Republicanos': 177977, 'NOVO': 158866, 'PODE': 136222, 'PSOL': 122171, 'PDT': 94590 }
                 },
                 'de': {
                     vagas: 40,
+                    eleitorado_2022: 5495133,
                     votos_validos_2022: 4124024,
-                    partidos_2022: { 'PL': 1173468, 'MDB': 658741, 'PT': 547214, 'PSD': 415396, 'PP': 365859, 'União': 255301, 'PSDB': 183427, 'Republicanos': 177977, 'NOVO': 158866, 'PODE': 136222, 'PSOL': 122171, 'PDT': 94590 } // Dados ilustrativos
+                    partidos_2022: { 'PL': 1173468, 'MDB': 658741, 'PT': 547214, 'PSD': 415396, 'PP': 365859, 'União': 255301, 'PSDB': 183427, 'Republicanos': 177977, 'NOVO': 158866, 'PODE': 136222, 'PSOL': 122171, 'PDT': 94590 }
                 },
                 'vereador': {
                     'Blumenau': {
                         vagas: 15,
+                        eleitorado_2020: 245237,
                         votos_validos_2020: 165604,
                         partidos_2020: { 'PODE': 25526, 'NOVO': 15875, 'PATRIOTA': 14608, 'PSL': 13038, 'PSD': 12698, 'PSDB': 11985, 'PT': 11211, 'PP': 10567, 'MDB': 9625, 'CIDADANIA': 8802, 'REPUBLICANOS': 8328, 'SOLIDARIEDADE': 6649, 'PL': 5985, 'PSC': 5698 }
                     },
                     'Florianópolis': {
                         vagas: 23,
+                        eleitorado_2020: 387869,
                         votos_validos_2020: 261771,
                         partidos_2020: { 'PSOL': 35000, 'MDB': 31000, 'PSD': 28000, 'PP': 25000, 'DEM': 22000, 'PSDB': 20000, 'PT': 18000, 'REPUBLICANOS': 15000, 'NOVO': 12000 }
                     }
@@ -158,18 +184,15 @@
             const ufSelect = document.getElementById('uf');
             const tipoEleicaoSelect = document.getElementById('tipoEleicao');
             const cidadeSelect = document.getElementById('cidade');
+            const partidosSelect = document.getElementById('partidos-select');
 
-            // Populate UFs
-            Object.keys(DADOS_ELEICOES).forEach(uf => {
-                ufSelect.add(new Option(uf, uf));
-            });
+            Object.keys(DADOS_ELEICOES).forEach(uf => ufSelect.add(new Option(uf, uf)));
 
-            // Event Listeners
             ufSelect.addEventListener('change', atualizarOpcoes);
             tipoEleicaoSelect.addEventListener('change', atualizarOpcoes);
             cidadeSelect.addEventListener('change', atualizarPartidos);
+            partidosSelect.addEventListener('change', atualizarCamposTendencia);
 
-            // Initial Load
             atualizarOpcoes();
         };
 
@@ -187,23 +210,16 @@
                 tipoEleicaoSelect.add(new Option(nomeCargo, cargo));
             });
 
-            if (cargosDisponiveis.includes(cargoAtual)) {
-                tipoEleicaoSelect.value = cargoAtual;
-            }
-
+            if (cargosDisponiveis.includes(cargoAtual)) tipoEleicaoSelect.value = cargoAtual;
+            
             const tipoEleicao = tipoEleicaoSelect.value;
-
             if (tipoEleicao === 'vereador') {
                 cidadeGroup.classList.remove('hidden');
                 const cidadesDisponiveis = Object.keys(DADOS_ELEICOES[uf].vereador);
                 const cidadeAtual = cidadeSelect.value;
                 cidadeSelect.innerHTML = '';
-                cidadesDisponiveis.forEach(cidade => {
-                    cidadeSelect.add(new Option(cidade, cidade));
-                });
-                if (cidadesDisponiveis.includes(cidadeAtual)) {
-                    cidadeSelect.value = cidadeAtual;
-                }
+                cidadesDisponiveis.forEach(cidade => cidadeSelect.add(new Option(cidade, cidade)));
+                if (cidadesDisponiveis.includes(cidadeAtual)) cidadeSelect.value = cidadeAtual;
             } else {
                 cidadeGroup.classList.add('hidden');
             }
@@ -217,20 +233,44 @@
             const cidade = document.getElementById('cidade').value;
             const partidosSelect = document.getElementById('partidos-select');
 
-            let dadosEleicao;
-            if (tipoEleicao === 'vereador') {
-                dadosEleicao = DADOS_ELEICOES[uf]?.[tipoEleicao]?.[cidade];
-            } else {
-                dadosEleicao = DADOS_ELEICOES[uf]?.[tipoEleicao];
-            }
+            let dadosEleicao = (tipoEleicao === 'vereador')
+                ? DADOS_ELEICOES[uf]?.[tipoEleicao]?.[cidade]
+                : DADOS_ELEICOES[uf]?.[tipoEleicao];
 
             partidosSelect.innerHTML = '';
             if (dadosEleicao) {
                 const partidos = Object.keys(dadosEleicao.partidos_2022 || dadosEleicao.partidos_2020);
-                partidos.sort().forEach(p => {
-                    partidosSelect.add(new Option(p, p));
-                });
+                partidos.sort().forEach(p => partidosSelect.add(new Option(p, p)));
             }
+            atualizarCamposTendencia();
+        }
+
+        function atualizarCamposTendencia() {
+            const container = document.getElementById('partido-tendencias-container');
+            const partidosSelecionados = Array.from(document.getElementById('partidos-select').selectedOptions).map(opt => opt.value);
+            
+            container.innerHTML = ''; // Limpa campos anteriores
+
+            if (partidosSelecionados.length === 0) {
+                container.innerHTML = `<p class="text-sm text-gray-500">Selecione os partidos no Passo 3 para definir as tendências.</p>`;
+                return;
+            }
+
+            partidosSelecionados.forEach(partido => {
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-2 gap-4 items-center';
+                div.innerHTML = `
+                    <label for="tendencia-${partido}" class="text-sm font-medium text-gray-700">${partido}</label>
+                    <select id="tendencia-${partido}" data-partido="${partido}" class="tendencia-partido w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                        <option value="0.15">Crescimento Forte (+15%)</option>
+                        <option value="0.05">Crescimento Leve (+5%)</option>
+                        <option value="0" selected>Estável (0%)</option>
+                        <option value="-0.05">Queda Leve (-5%)</option>
+                        <option value="-0.15">Queda Forte (-15%)</option>
+                    </select>
+                `;
+                container.appendChild(div);
+            });
         }
 
         function realizarAnalise() {
@@ -249,61 +289,65 @@
                 return;
             }
 
-            // 2. Obter dados base da eleição
-            let dadosBase;
-            if (tipoEleicao === 'vereador') {
-                dadosBase = DADOS_ELEICOES[uf]?.[tipoEleicao]?.[cidade];
-            } else {
-                dadosBase = DADOS_ELEICOES[uf]?.[tipoEleicao];
-            }
+            // 2. Coletar dados de projeção
+            const projCrescimentoEleitorado = (parseFloat(document.getElementById('proj-eleitorado').value) || 0) / 100;
+            const tendencias = {};
+            document.querySelectorAll('.tendencia-partido').forEach(select => {
+                tendencias[select.dataset.partido] = parseFloat(select.value);
+            });
+
+            // 3. Obter dados base da eleição
+            let dadosBase = (tipoEleicao === 'vereador')
+                ? DADOS_ELEICOES[uf]?.[tipoEleicao]?.[cidade]
+                : DADOS_ELEICOES[uf]?.[tipoEleicao];
             
             const numVagas = dadosBase.vagas;
+            const eleitoradoBase = dadosBase.eleitorado_2022 || dadosBase.eleitorado_2020;
             const votosValidosBase = dadosBase.votos_validos_2022 || dadosBase.votos_validos_2020;
             const partidosBase = dadosBase.partidos_2022 || dadosBase.partidos_2020;
+            const proporcaoVotosValidos = votosValidosBase / eleitoradoBase;
 
-            // 3. Calcular métricas fundamentais
-            const quocienteEleitoral = Math.floor(votosValidosBase / numVagas);
-            const votosMinimosCandidato = Math.ceil(quocienteEleitoral * 0.10);
+            // 4. Calcular métricas projetadas
+            const eleitoradoProjetado = Math.floor(eleitoradoBase * (1 + projCrescimentoEleitorado));
+            const votosValidosProjetado = Math.floor(eleitoradoProjetado * proporcaoVotosValidos);
+            const quocienteEleitoralProjetado = Math.floor(votosValidosProjetado / numVagas);
+            const votosMinimosCandidatoProjetado = Math.ceil(quocienteEleitoralProjetado * 0.10);
 
-            // 4. Analisar cada partido selecionado
+            // 5. Analisar cada partido com base na projeção
             const analises = partidosSelecionados.map(partidoNome => {
                 const votosPartidoBase = partidosBase[partidoNome] || 0;
-                const votosPartidoSimulado = votosPartidoBase + votosCandidato;
-
-                // Verifica se o partido atinge a cláusula de barreira (80% do QE)
-                const atingeClausulaPartido = votosPartidoSimulado >= quocienteEleitoral * 0.8;
+                const tendenciaPartido = tendencias[partidoNome] || 0;
                 
-                // Calcula vagas pelo Quociente Partidário (QP)
-                const vagasPorQP = Math.floor(votosPartidoSimulado / quocienteEleitoral);
+                const votosPartidoProjetado = Math.floor(votosPartidoBase * (1 + tendenciaPartido));
+                const votosPartidoSimulado = votosPartidoProjetado + votosCandidato;
 
-                // Verifica se o candidato atinge a votação nominal mínima (10% do QE)
-                const atingeVotacaoMinima = votosCandidato >= votosMinimosCandidato;
+                const atingeClausulaPartido = votosPartidoSimulado >= quocienteEleitoralProjetado * 0.8;
+                const vagasPorQP = Math.floor(votosPartidoSimulado / quocienteEleitoralProjetado);
+                const atingeVotacaoMinima = votosCandidato >= votosMinimosCandidatoProjetado;
 
                 let chance = 'Baixa';
                 let observacao = '';
                 if (!atingeClausulaPartido) {
-                    observacao = 'Partido não atinge 80% do QE para disputar sobras.';
+                    observacao = 'No cenário projetado, o partido não atinge 80% do QE para disputar sobras.';
                 } else if (!atingeVotacaoMinima) {
-                    observacao = `Você precisa de mais ${votosMinimosCandidato - votosCandidato} votos para atingir o mínimo individual.`;
+                    observacao = `Você precisa de mais ${votosMinimosCandidatoProjetado - votosCandidato} votos para o mínimo individual projetado.`;
                 } else if (vagasPorQP < 1) {
-                    observacao = `Com seus votos, o partido ainda não atinge o QE para garantir uma vaga direta. Disputaria as sobras.`;
+                    observacao = `Partido não atinge o QE projetado para vaga direta. Disputaria as sobras.`;
                     chance = 'Média';
                 } else {
-                    observacao = `Com seus votos, o partido elege ${vagasPorQP} candidato(s) direto. Você está apto a assumir.`;
+                    observacao = `Partido elege ${vagasPorQP} candidato(s) direto no cenário projetado. Você está apto.`;
                     chance = 'Alta';
                 }
                 
                 return {
                     nome: partidoNome,
                     votosSimulado: votosPartidoSimulado,
-                    vagasQP: vagasPorQP,
                     chance: chance,
                     observacao: observacao
                 };
             });
 
-            // 5. Renderizar os resultados
-            renderizarResultados(analises, quocienteEleitoral, votosMinimosCandidato, votosCandidato, custoCampanha);
+            renderizarResultados(analises, quocienteEleitoralProjetado, votosMinimosCandidatoProjetado, votosCandidato, custoCampanha);
         }
 
         function renderizarResultados(analises, QE, votosMinimos, votosCandidato, custoCampanha) {
@@ -322,10 +366,10 @@
 
             let html = `
                 <div class="step-card p-6">
-                    <h2 class="text-3xl font-bold text-gray-800 text-center mb-6">Resultado da Análise de Viabilidade</h2>
+                    <h2 class="text-3xl font-bold text-gray-800 text-center mb-6">Resultado da Análise de Viabilidade (Projeção)</h2>
                     
                     <div class="text-center mb-8">
-                        <p class="text-lg text-gray-600">Sua principal chance de eleição é:</p>
+                        <p class="text-lg text-gray-600">Sua principal chance de eleição no cenário projetado é:</p>
                         <div class="inline-block text-white font-bold text-2xl px-6 py-2 rounded-full mt-2 ${corViabilidade}">
                             ${melhorOpcao.chance.toUpperCase()}
                         </div>
@@ -334,11 +378,11 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8 bg-gray-100 p-4 rounded-lg">
                         <div>
-                            <p class="text-sm text-gray-500">Quociente Eleitoral (QE)</p>
+                            <p class="text-sm text-gray-500">Quociente Eleitoral Projetado</p>
                             <p class="text-2xl font-bold text-gray-800">${QE.toLocaleString('pt-BR')}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-500">Votação Mínima Individual (10% QE)</p>
+                            <p class="text-sm text-gray-500">Votação Mínima Individual Projetada</p>
                             <p class="text-2xl font-bold text-gray-800">${votosMinimos.toLocaleString('pt-BR')}</p>
                         </div>
                         <div>
@@ -347,14 +391,14 @@
                         </div>
                     </div>
 
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Comparativo Estratégico dos Partidos</h3>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Comparativo Estratégico dos Partidos (Projeção)</h3>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Partido</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Votos do Partido (com você)</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Chance</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Votos Projetados (com você)</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Chance Projetada</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Observação Estratégica</th>
                                 </tr>
                             </thead>
