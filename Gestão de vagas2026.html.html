@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rede Unificada - Planeamento 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #f59e0b;
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            scroll-behavior: smooth;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .animate-fade-up {
+            animation: fadeUp 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-active {
+            background-color: #0f172a;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .grade-badge {
+            @apply px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200;
+        }
+    </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-900 overflow-x-hidden">
+
+    <div id="app">
+        <!-- Tela de Inicialização / Upload -->
+        <div id="upload-screen" class="min-h-screen flex items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50 via-white to-slate-50">
+            <div class="max-w-xl w-full text-center space-y-8 animate-fade-up">
+                <div class="relative inline-block">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl blur opacity-20"></div>
+                    <div class="relative bg-white p-6 rounded-[2rem] shadow-xl border border-blue-50">
+                        <i data-lucide="school" class="w-12 h-12 text-blue-600 mx-auto"></i>
+                    </div>
+                </div>
+                
+                <div>
+                    <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+                        Rede <span class="text-blue-600">Unificada</span>
+                    </h1>
+                    <p class="mt-4 text-lg text-slate-500 font-medium">
+                        Gestão de Irmãos por <span class="text-blue-600">Escola, Turno e Série</span>.
+                    </p>
+                </div>
+
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-6">
+                    <div id="drop-zone" class="border-2 border-dashed border-slate-200 rounded-2xl p-10 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer group">
+                        <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls, .csv" />
+                        <label for="fileInput" class="cursor-pointer">
+                            <i data-lucide="cloud-upload" class="w-10 h-10 text-slate-400 mx-auto group-hover:text-blue-500 transition-colors mb-4"></i>
+                            <span class="block text-sm font-bold text-slate-600">Carregar arquivo de matrículas</span>
+                            <span class="block text-xs text-slate-400 mt-1">Colunas: Responsável, Aluno, Escola, Turma/Ano</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Principal -->
+        <div id="main-content" class="hidden min-h-screen">
+            <nav class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4">
+                <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-600 p-2 rounded-lg text-white">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-extrabold text-slate-900 tracking-tight leading-none uppercase text-sm">Sistema de Unificação</h2>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ano Letivo 2026</span>
+                        </div>
+                    </div>
+
+                    <div class="flex bg-slate-100 p-1 rounded-xl">
+                        <button onclick="switchTab('list')" id="btn-tab-list" class="px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 tab-active">
+                            <i data-lucide="users" class="w-4 h-4"></i> Famílias
+                        </button>
+                        <button onclick="switchTab('impact')" id="btn-tab-impact" class="px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-slate-500">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Vagas por Série
+                        </button>
+                    </div>
+
+                    <button onclick="exportData()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-200">
+                        <i data-lucide="file-down" class="w-4 h-4"></i> Exportar Dados
+                    </button>
+                </div>
+            </nav>
+
+            <main class="max-w-7xl mx-auto p-6 space-y-8 animate-fade-up">
+                
+                <!-- KPIs -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Alunos</p>
+                        <h3 id="stat-total" class="text-3xl font-extrabold text-slate-900">0</h3>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <p class="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Conflito de Turno</p>
+                        <h3 id="stat-conflito-turno" class="text-3xl font-extrabold text-amber-600">0</h3>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                        <p class="text-[10px] font-bold text-rose-500 uppercase tracking-widest mb-1">Irmãos Separados</p>
+                        <h3 id="stat-vagas-escola" class="text-3xl font-extrabold text-rose-600">0</h3>
+                    </div>
+
+                    <div class="bg-blue-600 p-6 rounded-3xl shadow-xl text-white">
+                        <p class="text-[10px] font-bold text-blue-100 uppercase tracking-widest mb-1">Ajustes Necessários</p>
+                        <h3 id="stat-vagas-totais" class="text-3xl font-extrabold">0</h3>
+                    </div>
+                </div>
+
+                <!-- Tab: Famílias -->
+                <section id="tab-list" class="space-y-6">
+                    <div class="flex flex-col md:flex-row gap-4 justify-between">
+                        <div class="relative w-full max-w-md">
+                            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="searchFamilies" oninput="renderFamilyTable()" placeholder="Buscar por responsável..." class="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-6 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <select id="filterStatus" onchange="renderFamilyTable()" class="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold">
+                            <option value="all">Todos</option>
+                            <option value="conflito">Com Conflito</option>
+                            <option value="unificado">Unificados</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50/50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Responsável</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Nº Filhos</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Anos/Séries</th>
+                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="familyTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Tab: Impacto -->
+                <section id="tab-impact" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white rounded-3xl border border-slate-200 p-8 space-y-6 h-fit">
+                        <div>
+                            <h3 class="font-extrabold text-slate-900 text-lg">Resumo por Unidade</h3>
+                            <p class="text-xs text-slate-400">Vagas necessárias para unificação completa</p>
+                        </div>
+                        <div id="schoolImpactList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar"></div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-slate-200 p-8 space-y-6">
+                        <div>
+                            <h3 class="font-extrabold text-slate-900 text-lg">Detalhamento por Série/Ano</h3>
+                            <p class="text-xs text-slate-400">Distribuição exata por nível de ensino e turno</p>
+                        </div>
+                        <div id="gradeImpactList" class="grid grid-cols-1 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar"></div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let rawData = [];
+        let groupedData = [];
+        let expandedRows = new Set();
+
+        lucide.createIcons();
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('bg-blue-50'); };
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        };
+
+        fileInput.onchange = (e) => {
+            if (e.target.files[0]) handleFile(e.target.files[0]);
+        };
+
+        function detectTurno(text) {
+            const t = String(text || "").toUpperCase();
+            if (t.includes("MATUTINO") || t.includes("MANHÃ") || t.includes("MANHA")) return "Matutino";
+            if (t.includes("VESPERTINO") || t.includes("TARDE")) return "Vespertino";
+            if (t.includes("INTEGRAL")) return "Integral";
+            return "Matutino"; // Default
+        }
+
+        function normalizeName(name) {
+            if (!name) return "";
+            return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
+                .replace(/CENTRO DE EDUCACAO INFANTIL|ESCOLA BASICA MUNICIPAL|PROFESSORA|PROFESSOR|PROFA\.|PROF\.|MUNICIPAL|CEI|EBM/g, "")
+                .replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+        }
+
+        async function handleFile(file) {
+            const reader = new FileReader();
+            const isExcel = file.name.match(/\.(xlsx|xls)$/);
+
+            reader.onload = (e) => {
+                let data;
+                if (isExcel) {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                } else {
+                    data = e.target.result.split(/\n/).map(r => r.split(','));
+                }
+                processData(data);
+            };
+
+            if (isExcel) reader.readAsArrayBuffer(file);
+            else reader.readAsText(file);
+        }
+
+        function processData(rows) {
+            if (rows.length < 2) return;
+
+            rawData = rows.slice(1).filter(r => r[0]).map(r => {
+                const escola = String(r[4] || "").trim();
+                const turma = String(r[5] || "").trim();
+                return {
+                    responsavel: String(r[0] || "").trim(),
+                    aluno: String(r[1] || "").trim(),
+                    escola,
+                    escolaNorm: normalizeName(escola),
+                    turma,
+                    turno: r[6] ? detectTurno(r[6]) : detectTurno(turma)
+                };
+            });
+
+            const families = {};
+            rawData.forEach(item => {
+                if (!families[item.responsavel]) families[item.responsavel] = [];
+                families[item.responsavel].push(item);
+            });
+
+            groupedData = Object.entries(families).map(([responsavel, alunos]) => {
+                // Escolha da escola âncora (onde tem mais filhos)
+                const counts = {};
+                alunos.forEach(a => counts[a.escolaNorm] = (counts[a.escolaNorm] || 0) + 1);
+                const anchorNorm = Object.entries(counts).sort((a,b) => b[1] - a[1])[0][0];
+                const anchorEscola = alunos.find(a => a.escolaNorm === anchorNorm).escola;
+
+                // Escolha do turno âncora
+                const tCounts = {};
+                alunos.filter(a => a.escolaNorm === anchorNorm).forEach(a => tCounts[a.turno] = (tCounts[a.turno] || 0) + 1);
+                const anchorTurno = Object.entries(tCounts).length > 0 ? Object.entries(tCounts).sort((a,b) => b[1] - a[1])[0][0] : "Matutino";
+
+                const schools = new Set(alunos.map(a => a.escolaNorm));
+                const turnos = new Set(alunos.map(a => a.turno));
+
+                return {
+                    responsavel,
+                    alunos,
+                    anchorEscola,
+                    anchorNorm,
+                    anchorTurno,
+                    temConflitoEscola: schools.size > 1,
+                    temConflitoTurno: turnos.size > 1 && anchorTurno !== "Integral",
+                    needsAdjustment: alunos.some(a => a.escolaNorm !== anchorNorm || (a.turno !== anchorTurno && a.turno !== "Integral"))
+                };
+            }).sort((a,b) => (b.needsAdjustment ? 1 : 0) - (a.needsAdjustment ? 1 : 0));
+
+            document.getElementById('upload-screen').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            renderFamilyTable();
+            renderImpact();
+            updateStats();
+        }
+
+        function updateStats() {
+            const adjustments = groupedData.filter(f => f.needsAdjustment);
+            let totalVagas = 0;
+            adjustments.forEach(f => {
+                f.alunos.forEach(a => {
+                    if (a.escolaNorm !== f.anchorNorm || (a.turno !== f.anchorTurno && a.turno !== "Integral")) totalVagas++;
+                });
+            });
+
+            document.getElementById('stat-total').innerText = rawData.length;
+            document.getElementById('stat-conflito-turno').innerText = groupedData.filter(f => f.temConflitoTurno).length;
+            document.getElementById('stat-vagas-escola').innerText = groupedData.filter(f => f.temConflitoEscola).length;
+            document.getElementById('stat-vagas-totais').innerText = totalVagas;
+        }
+
+        function renderFamilyTable() {
+            const term = document.getElementById('searchFamilies').value.toLowerCase();
+            const filter = document.getElementById('filterStatus').value;
+            const tbody = document.getElementById('familyTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = groupedData.filter(f => {
+                const match = f.responsavel.toLowerCase().includes(term);
+                if (filter === 'conflito') return match && f.needsAdjustment;
+                if (filter === 'unificado') return match && !f.needsAdjustment;
+                return match;
+            });
+
+            filtered.forEach((f, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 cursor-pointer transition-all";
+                tr.onclick = () => {
+                    if (expandedRows.has(idx)) expandedRows.delete(idx); else expandedRows.add(idx);
+                    renderFamilyTable();
+                };
+
+                const gradesList = [...new Set(f.alunos.map(a => a.turma))].join(", ");
+
+                tr.innerHTML = `
+                    <td class="px-8 py-5">
+                        <div class="font-bold text-slate-800 text-xs uppercase">${f.responsavel}</div>
+                    </td>
+                    <td class="px-8 py-5 text-center">
+                        <span class="text-xs font-bold bg-slate-100 px-2 py-1 rounded">${f.alunos.length}</span>
+                    </td>
+                    <td class="px-8 py-5 text-right">
+                        <div class="flex flex-wrap gap-1 justify-end">
+                            ${f.alunos.map(a => `<span class="grade-badge">${a.turma}</span>`).join('')}
+                        </div>
+                    </td>
+                    <td class="px-8 py-5 text-right">
+                        ${f.needsAdjustment ? 
+                            '<span class="text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded">Requer Ajuste</span>' : 
+                            '<span class="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded">Unificado</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                if (expandedRows.has(idx)) {
+                    const detailTr = document.createElement('tr');
+                    detailTr.className = "bg-slate-50/50";
+                    detailTr.innerHTML = `
+                        <td colspan="4" class="px-8 py-6">
+                            <div class="mb-4 flex items-center gap-4">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plano de Unificação:</p>
+                                <div class="flex gap-2">
+                                    <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded">${f.anchorEscola}</span>
+                                    <span class="bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded">${f.anchorTurno}</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                ${f.alunos.map(a => {
+                                    const ok = a.escolaNorm === f.anchorNorm && (a.turno === f.anchorTurno || a.turno === "Integral");
+                                    return `
+                                        <div class="bg-white p-4 rounded-2xl border ${ok ? 'border-slate-200' : 'border-rose-200 shadow-sm'}">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <span class="grade-badge">${a.turma}</span>
+                                                <span class="text-[9px] font-bold uppercase ${a.turno === 'Matutino' ? 'text-amber-500' : 'text-blue-500'}">${a.turno}</span>
+                                            </div>
+                                            <p class="text-xs font-black text-slate-800 uppercase">${a.aluno}</p>
+                                            <p class="text-[10px] text-slate-500 mt-1">${a.escola}</p>
+                                            ${!ok ? `<div class="mt-3 text-[9px] font-bold text-rose-500 uppercase flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> Transferir para Âncora</div>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(detailTr);
+                }
+            });
+            lucide.createIcons();
+        }
+
+        function renderImpact() {
+            const schoolImpact = {};
+            const gradeImpact = {};
+
+            groupedData.forEach(f => {
+                f.alunos.forEach(a => {
+                    const needs = (a.escolaNorm !== f.anchorNorm) || (a.turno !== f.anchorTurno && a.turno !== "Integral");
+                    if (needs) {
+                        const sKey = `${f.anchorNorm}-${f.anchorTurno}`;
+                        if (!schoolImpact[sKey]) schoolImpact[sKey] = { nome: f.anchorEscola, turno: f.anchorTurno, count: 0 };
+                        schoolImpact[sKey].count++;
+
+                        const gKey = `${f.anchorNorm}-${f.anchorTurno}-${a.turma}`;
+                        if (!gradeImpact[gKey]) gradeImpact[gKey] = { escola: f.anchorEscola, turno: f.anchorTurno, serie: a.turma, count: 0 };
+                        gradeImpact[gKey].count++;
+                    }
+                });
+            });
+
+            const sContainer = document.getElementById('schoolImpactList');
+            const gContainer = document.getElementById('gradeImpactList');
+            sContainer.innerHTML = '';
+            gContainer.innerHTML = '';
+
+            Object.values(schoolImpact).sort((a,b) => b.count - a.count).forEach(s => {
+                const div = document.createElement('div');
+                div.className = "group";
+                div.innerHTML = `
+                    <div class="flex justify-between items-end mb-1">
+                        <div>
+                            <p class="text-[9px] font-bold text-blue-600 uppercase">${s.turno}</p>
+                            <p class="text-xs font-bold text-slate-700 uppercase">${s.nome}</p>
+                        </div>
+                        <span class="text-lg font-black text-blue-600">+${s.count}</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-100 rounded-full"><div class="h-full bg-blue-600 rounded-full" style="width: ${Math.min(100, s.count*5)}%"></div></div>
+                `;
+                sContainer.appendChild(div);
+            });
+
+            Object.values(gradeImpact).sort((a,b) => b.count - a.count).forEach(g => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors";
+                div.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">${g.escola}</span>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-xs font-black text-slate-800 uppercase">${g.serie}</span>
+                            <span class="px-1.5 py-0.5 rounded bg-white text-[8px] font-bold text-slate-500 border border-slate-200 uppercase">${g.turno}</span>
+                        </div>
+                    </div>
+                    <div class="bg-blue-600 text-white px-3 py-1 rounded-xl text-xs font-black">+${g.count}</div>
+                `;
+                gContainer.appendChild(div);
+            });
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tab-list').classList.toggle('hidden', tab !== 'list');
+            document.getElementById('tab-impact').classList.toggle('hidden', tab !== 'impact');
+            document.getElementById('btn-tab-list').className = tab === 'list' ? 'px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 tab-active' : 'px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-slate-500';
+            document.getElementById('btn-tab-impact').className = tab === 'impact' ? 'px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 tab-active' : 'px-5 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 text-slate-500';
+        }
+
+        function exportData() {
+            const wb = XLSX.utils.book_new();
+            
+            // Levantamento de Vagas por Série
+            const gradeImpact = {};
+            groupedData.forEach(f => {
+                f.alunos.forEach(a => {
+                    if ((a.escolaNorm !== f.anchorNorm) || (a.turno !== f.anchorTurno && a.turno !== "Integral")) {
+                        const key = `${f.anchorEscola}-${a.turma}-${f.anchorTurno}`;
+                        if(!gradeImpact[key]) gradeImpact[key] = { Escola: f.anchorEscola, Série: a.turma, Turno: f.anchorTurno, Vagas: 0 };
+                        gradeImpact[key].Vagas++;
+                    }
+                });
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(Object.values(gradeImpact)), "Vagas por Série");
+
+            // Lista de Movimentações
+            const moves = [];
+            groupedData.filter(f => f.needsAdjustment).forEach(f => {
+                f.alunos.forEach(a => {
+                    if (a.escolaNorm !== f.anchorNorm || (a.turno !== f.anchorTurno && a.turno !== "Integral")) {
+                        moves.push({
+                            Responsável: f.responsavel,
+                            Aluno: a.aluno,
+                            Série: a.turma,
+                            Escola_Atual: a.escola,
+                            Turno_Atual: a.turno,
+                            Escola_Destino: f.anchorEscola,
+                            Turno_Destino: f.anchorTurno
+                        });
+                    }
+                });
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(moves), "Lista de Transferências");
+
+            XLSX.writeFile(wb, `Planeamento_Rede_Irmaos_2026.xlsx`);
+        }
+    </script>
+</body>
+</html>
